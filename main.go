@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"mycoin/models"
+	"mycoin/model"
+	"strconv"
 )
 
 func main() {
-	var bc = models.NewBlockChain()
+	var bc = model.NewBlockChain()
 
 	bc.AddBlock("Send 1 BTC to Ivan")
 	bc.AddBlock("Send 2 more BTC to Ivan")
@@ -15,6 +16,8 @@ func main() {
 		fmt.Printf("Prev. hash: %x\n", block.PrevBlockHash)
 		fmt.Printf("Data: %s\n", block.Data)
 		fmt.Printf("Hash: %x\n", block.Hash)
+		pow := model.NewProofOfWork(block)
+		fmt.Printf("PoW: %s\n", strconv.FormatBool(pow.Validate()))
 		fmt.Println()
 	}
 }
