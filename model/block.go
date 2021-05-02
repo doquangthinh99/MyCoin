@@ -1,4 +1,4 @@
-package models
+package model
 
 import(
 	"bytes"
@@ -12,6 +12,7 @@ type Block struct {
 	Data          []byte
 	PrevBlockHash []byte
 	Hash          []byte
+	Count			int
 }
 
 func (b *Block) SetHash() {
@@ -23,7 +24,13 @@ func (b *Block) SetHash() {
 }
 
 func NewBlock(data string, prevBlockHash []byte) (*Block) {
-	block := &Block{time.Now().Unix(), []byte(data), prevBlockHash, []byte{}}
-	block.SetHash()
+	block := &Block{time.Now().Unix(), []byte(data), prevBlockHash, []byte{},0}
+	pow := NewProofOfWork(block)
+
+	count,hash := pow.Run()
+
+	block.Hash = hash[:]
+	block.Count = count
+
 	return block
 }
