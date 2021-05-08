@@ -1,9 +1,9 @@
 package services
 
-import {
-	"models"
+import (
+	
 
-}
+)
 
 func (w Wallet) GetAddress() []byte {
 	pubKeyHash := HashPubKey(w.PublicKey)
