@@ -1,4 +1,4 @@
-package model
+package main
 
 import (
 	"bytes"
@@ -7,12 +7,7 @@ import (
 
 var b58Alphabet = []byte("123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz")
 
-func ReverseBytes(data []byte) {
-	for i, j := 0, len(data)-1; i < j; i, j = i+1, j-1 {
-		data[i], data[j] = data[j], data[i]
-	}
-}
-
+// Base58Encode encodes a byte array to Base58
 func Base58Encode(input []byte) []byte {
 	var result []byte
 
@@ -39,6 +34,7 @@ func Base58Encode(input []byte) []byte {
 	return result
 }
 
+// Base58Decode decodes Base58-encoded data
 func Base58Decode(input []byte) []byte {
 	result := big.NewInt(0)
 	zeroBytes := 0

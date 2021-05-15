@@ -1,58 +1,65 @@
-package model
+package main
 
-import(
+import (
 	"bytes"
-	"crypto/sha256"
-	"time"
 	"encoding/gob"
-	"fmt"
-	"strconv"
 	"log"
+	"time"
 )
 
+// Block represents a block in the blockchain
 type Block struct {
-	Timestamp     	int64
-	transaction 	Transaction
-	PrevBlockHash 	[]byte
-	Hash          	[]byte
-	Count			int
+	Timestamp     int64
+	Transactions  []*Transaction
+	PrevBlockHash []byte
+	Hash          []byte
+	Nonce         int
+	Height        int
 }
 
-func (b *Block) HashTransactions() []byte {
-	var txHashes [][]byte
-	var txHash [32]byte
-
-	txHashes = append(txHashes, b.transaction.Sender,b.transaction.Receiver)
-	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
-
-	return txHash[:]
-}
-
-func NewBlock(transactions Transaction, prevBlockHash []byte) (*Block) {
-	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{},0}
+// NewBlock creates and returns Block
+func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int) *Block {
+	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0, height}
 	pow := NewProofOfWork(block)
-
-	count,hash := pow.Run()
+	nonce, hash := pow.Run()
 
 	block.Hash = hash[:]
-	block.Count = count
+	block.Nonce = nonce
 
-	fmt.Printf("%d:%x:",block.Count,block.Hash)
-	fmt.Printf("PoW: %s\n\n", strconv.FormatBool(pow.Validate()))
 	return block
 }
 
+// NewGenesisBlock creates and returns genesis Block
+func NewGenesisBlock(coinbase *Transaction) *Block {
+	return NewBlock([]*Transaction{coinbase}, []byte{}, 0)
+}
+
+// HashTransactions returns a hash of the transactions in the block
+func (b *Block) HashTransactions() []byte {
+	var transactions [][]byte
+
+	for _, tx := range b.Transactions {
+		transactions = append(transactions, tx.Serialize())
+	}
+	mTree := NewMerkleTree(transactions)
+
+	return mTree.RootNode.Data
+}
+
+// Serialize serializes the block
 func (b *Block) Serialize() []byte {
 	var result bytes.Buffer
 	encoder := gob.NewEncoder(&result)
 
 	err := encoder.Encode(b)
-	if err != nil{
-		return nil;
+	if err != nil {
+		log.Panic(err)
 	}
+
 	return result.Bytes()
 }
 
+// DeserializeBlock deserializes a block
 func DeserializeBlock(d []byte) *Block {
 	var block Block
 
@@ -64,4 +71,3 @@ func DeserializeBlock(d []byte) *Block {
 
 	return &block
 }
-
