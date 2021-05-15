@@ -16,7 +16,7 @@ var (
 	maxCount = math.MaxInt64
 )
 
-const difficulty = "00000"
+const difficulty = "0"
 
 type ProofOfWork struct {
 	block  *Block
@@ -33,7 +33,7 @@ func (pow *ProofOfWork) prepareData(count int) []byte {
 	data := bytes.Join(
 		[][]byte{
 			pow.block.PrevBlockHash,
-			pow.block.Data,
+			pow.block.HashTransactions(),
 			IntToHex(pow.block.Timestamp),
 			IntToHex(int64(count)),
 		},
@@ -48,7 +48,7 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 	var hash [32]byte
 	count := 0
 
-	fmt.Printf("Mining the block containing \"%s\"\n", pow.block.Data)
+	fmt.Printf("Mining a new block")
 	for count < maxCount {
 		data := pow.prepareData(count)
 		hash = sha256.Sum256(data)
@@ -61,7 +61,7 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 			count++
 		}
 	}
-	fmt.Print("\n\n")
+	fmt.Printf("\n\n%d\n",count)
 
 	return count, hash[:]
 }
@@ -77,17 +77,11 @@ func IntToHex(num int64) []byte {
 }
 
 func (pow *ProofOfWork) Validate() bool {
-	var hashInt big.Int
-
-	data := pow.prepareData(pow.block.Count)
-	hash := sha256.Sum256(data)
-	hashInt.SetBytes(hash[:])
-
-	isValid := strings.HasPrefix( binToStr(hash[:]), difficulty)
+	isValid := strings.HasPrefix( binToStr(pow.block.Hash[:]), difficulty)
 
 	return isValid
 }
 
 func binToStr( bytes []byte ) string {
 	return hex.EncodeToString( bytes )
-  }
+}
