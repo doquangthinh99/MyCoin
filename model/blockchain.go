@@ -2,12 +2,10 @@ package model
 
 import(
 	"os"
-	"encoding/hex"
 	"fmt"
 	"log"
 	"bytes"
 	"errors"
-	"crypto/ecdsa"
 	"github.com/boltdb/bolt"
 )
 
@@ -25,8 +23,9 @@ type BlockChainIterator struct {
 	db          *bolt.DB
 }
 
-func CreateFristBlock(coinbase *Transaction) (*Block) {
-	return NewBlock([]*Transaction{coinbase}, []byte{})
+func CreateFristBlock() (*Block) {
+	coinbase := CreateBaseTransaction()
+	return NewBlock(coinbase, []byte{})
 }
 
 func NewBlockChain() *BlockChain {
@@ -64,8 +63,7 @@ func CreateBlockChain(address string) *BlockChain {
 
 	var tip []byte
 
-	cbtx := NewCoinBaseTX(address, "DQT")
-	fristBlock := CreateFristBlock(cbtx)
+	fristBlock := CreateFristBlock()
 
 	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
@@ -120,7 +118,6 @@ func (i *BlockChainIterator) Next() *Block {
 		log.Panic(err)
 	}
 	i.currentHash = block.PrevBlockHash
-	fmt.Printf("TestNew: %d\n\n", len(block.transactions))
 	return block
 }
 
@@ -130,9 +127,9 @@ func (bc *BlockChain) FindTransaction(ID []byte) (Transaction, error) {
 	for {
 		block := bci.Next()
 
-		tx := block.transaction{
+		tx := block.transaction
 		if bytes.Compare(tx.Sender, ID) == 0 {
-			return *tx, nil
+			return tx, nil
 		}
 
 		if len(block.PrevBlockHash) == 0 {
@@ -146,58 +143,24 @@ func (bc *BlockChain) FindTransaction(ID []byte) (Transaction, error) {
 
 
 
-func (bc *BlockChain) MineBlock(transactions []*Transaction) *Block {
-	var lastHash []byte
-
-	for _, tx := range transactions {
-		if bc.VerifyTransaction(tx) != true {
-			log.Panic("ERROR: Invalid transaction")
-		}
-	}
-
-	err := bc.db.View(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(blocksBucket))
-		lastHash = b.Get([]byte("l"))
-
-		return nil
-	})
-	if err != nil {
-		log.Panic(err)
-	}
-
-	newBlock := NewBlock(transactions, lastHash)
-
-	err = bc.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(blocksBucket))
-		err := b.Put(newBlock.Hash, newBlock.Serialize())
-		if err != nil {
-			log.Panic(err)
-		}
-
-		err = b.Put([]byte("l"), newBlock.Hash)
-		if err != nil {
-			log.Panic(err)
-		}
-
-		bc.tip = newBlock.Hash
-
-		return nil
-	})
-	if err != nil {
-		log.Panic(err)
-	}
-
-	return newBlock
+func (bc *BlockChain) MineBlock(block *Block,miner []byte)(int){
+	
+	pow := NewProofOfWork(block)
+	count,_ := pow.Run()
+	block.transaction.Status = "Confirm"
+	block.transaction.Miner = miner
+	block.Count = count
+	return count
 }
 
 
 func (bc *BlockChain) FindUnConfirmTransactions() []Transaction {
 	var unconfirmTXs []Transaction
-
+	bci := bc.Iterator()
 	for {
 		block := bci.Next()
 		if block.transaction.Status == "Uncofirm"{
-			unconfirmTXs = unconfirmTXs.append(unconfirmTXs,block.transaction);
+			unconfirmTXs = append(unconfirmTXs,block.transaction);
 		}
 		
 
@@ -211,11 +174,11 @@ func (bc *BlockChain) FindUnConfirmTransactions() []Transaction {
 
 func (bc *BlockChain) FindConfirmTransactions() []Transaction {
 	var confirmTXs []Transaction
-
+	bci := bc.Iterator()
 	for {
 		block := bci.Next()
 		if block.transaction.Status == "Cofirm"{
-			unconfirmTXs = unconfirmTXs.append(unconfirmTXs,block.transaction);
+			confirmTXs = append(confirmTXs,block.transaction);
 		}
 		
 

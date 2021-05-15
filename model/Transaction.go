@@ -1,18 +1,4 @@
 package model
-import(
-	"bytes"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/sha256"
-	"math/big"
-
-	"encoding/gob"
-	"encoding/hex"
-	"fmt"
-	"log"
-)
-
 // type TXOutput struct {
 // 	Value      int
 // 	PubKeyHash []byte
@@ -264,18 +250,23 @@ import(
 // 	return outputs
 // }
 
-type transaction{
+type Transaction struct{
 	Sign 		[]byte
+	Miner		[]byte
 	Sender		[]byte
 	Receiver	[]byte
 	Amount		int
 	Status		string
 }
 
-func NewTransaction()(sender []byte,receiver []byte,amount int){
-	return Transaction(SetBytes(0),sender,receiver,amount,"Unconfirm");
+func NewTransaction(sender []byte,receiver []byte,miner []byte,amount int) Transaction{
+	return Transaction{nil,nil,sender,receiver,amount,"Unconfirm"}
 }
 
-func (tx *Transaction) SignTransaction(sign []byte) {
-	tx->Sign = sign;
+func CreateBaseTransaction() Transaction{
+	return Transaction{nil,nil,nil,nil,0,"BaseTX"}
+}
+
+func (tx Transaction)SignTransaction(sign []byte) {
+	tx.Sign = sign;
 }
